@@ -1,6 +1,6 @@
 ﻿using IBM.WMQ;
+using Microsoft.Extensions.Logging;
 using Polly;
-using Serilog;
 using System;
 using System.Collections;
 using System.Globalization;
@@ -11,17 +11,24 @@ namespace MQIManagedClient
 {
     internal class Client
     {
+        private readonly ILogger<Client> _logger;
+
+        public Client(ILogger<Client> logger)
+        {
+            _logger = logger;
+        }
+
         public void Listen(MQConfig config, CancellationToken ct)
         {
             var retry = Policy
                 .Handle<MQException>(ex =>
                 {
-                    Log.Logger.Error(ex, $"MQException caught: {ex.ReasonCode} - {ex.Message}. Reconnecting...");
+                    _logger.LogError(ex, $"MQException caught: {ex.ReasonCode} - {ex.Message}. Reconnecting...");
                     return true;
                 })
                 .WaitAndRetry(40, (attempt, ctx) => TimeSpan.FromSeconds(3));
             retry.Execute(() => ListenInner(config, ct));
-            Log.Logger.Information("Event listening is stopped");
+            _logger.LogInformation("Event listening is stopped");
         }
         private void ListenInner(MQConfig config, CancellationToken ct)
         {            
@@ -39,17 +46,17 @@ namespace MQIManagedClient
                                 Format = MQC.MQFMT_STRING,
                                 CharacterSet = Encoding.UTF8.CodePage
                             };
-                            Log.Logger.Information("Before message get");
+                            _logger.LogInformation("Before message get");
                             queue.Get(msg, messageOptions);
-                            Log.Logger.Information("After message get");
+                            _logger.LogInformation("After message get");
                             var rawMessage = msg.ReadString(msg.MessageLength);
-                            Log.Logger.Information(rawMessage); 
+                            _logger.LogInformation(rawMessage); 
                             msg.ClearMessage();
                         }
                         catch (MQException ex)
                         {
                             if (ex.ReasonCode == MQC.MQRC_NO_MSG_AVAILABLE) continue;
-                            Log.Logger.Error(ex, $"MQException caught: {ex.ReasonCode} - {ex.Message}");
+                            _logger.LogError(ex, $"MQException caught: {ex.ReasonCode} - {ex.Message}");
                             if (ex.ReasonCode == MQC.MQRC_CONNECTION_BROKEN || ex.ReasonCode == MQC.MQRC_XWAIT_CANCELED) throw;
                             exited = true;
                         }
@@ -92,17 +99,17 @@ namespace MQIManagedClient
                 MQEnvironment.CertificateLabel = config.CertLabel;
 
             MQEnvironment.CertificateValPolicy = config.CertValPolicy;
-            Log.Logger.Information("Connectiong to queue manager...");
+            _logger.LogInformation("Connectiong to queue manager...");
             var queueManager = new MQQueueManager(config.QueueManagerName, properties);
-            Log.Logger.Information($"Connected to queue manager '{config.QueueManagerName}'");
+            _logger.LogInformation($"Connected to queue manager '{config.QueueManagerName}'");
             return queueManager;
         }
 
         private MQQueue GetQueue(MQQueueManager queueManager, string queueName)
         {
-            Log.Logger.Information($"Accessing queue: '{queueName}' ...");
+            _logger.LogInformation($"Accessing queue: '{queueName}' ...");
             var queue = queueManager.AccessQueue(queueName, MQC.MQOO_INPUT_AS_Q_DEF | MQC.MQOO_FAIL_IF_QUIESCING);
-            Log.Logger.Information("Queue is accessible");
+            _logger.LogInformation("Queue is accessible");
             return queue;
         }
 
