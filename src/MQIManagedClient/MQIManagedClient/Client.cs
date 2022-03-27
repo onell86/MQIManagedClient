@@ -1,16 +1,29 @@
 ﻿using IBM.WMQ;
+using Polly;
 using Serilog;
+using System;
 using System.Collections;
 using System.Globalization;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace MQIManagedClient
 {
     internal class Client
     {
         public void Listen(MQConfig config, CancellationToken ct)
+        {
+            var retry = Policy
+                .Handle<MQException>(ex =>
+                {
+                    Log.Logger.Error(ex, $"MQException caught: {ex.ReasonCode} - {ex.Message}. Reconnecting...");
+                    return true;
+                })
+                .WaitAndRetry(20, (attempt, ctx) => TimeSpan.FromSeconds(3));
+            retry.Execute(() => ListenInner(config, ct));
+            Log.Logger.Information("Event listening is stopped");
+        }
+        private void ListenInner(MQConfig config, CancellationToken ct)
         {            
             using (var queueManager = ConnectionToQueueManager(config))
             {
