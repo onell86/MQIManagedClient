@@ -19,7 +19,7 @@ namespace MQIManagedClient
                 CertStore = "*USER",
                 ChiperSpec = "TLS_RSA_WITH_AES_256_GCM_SHA384",
                 CertLabel = "ibmwebspheremqnazar",
-                HostIp = "ibmwebshere",
+                HostIp = "ibmwebsphere",
                 Port = 1414,
                 Channel = "DEV.APP.SVRCONN",
                 QueueManagerName = "QM1",
@@ -30,6 +30,7 @@ namespace MQIManagedClient
             var task = Task.Run(() => client.Listen(config, cancellationTokenSource.Token));
             Console.ReadLine();
             cancellationTokenSource.Cancel();
+            Log.Logger.Information("Shutting down the app");
             await task;
         }
     }
