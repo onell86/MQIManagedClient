@@ -19,7 +19,7 @@ namespace MQIManagedClient
                 CertStore = "*USER",
                 ChiperSpec = "TLS_RSA_WITH_AES_256_GCM_SHA384",
                 CertLabel = "ibmwebspheremqnazar",
-                HostIp = "localhost",
+                HostIp = "ibmwebshere",
                 Port = 1414,
                 Channel = "DEV.APP.SVRCONN",
                 QueueManagerName = "QM1",

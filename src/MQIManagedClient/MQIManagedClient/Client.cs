@@ -19,7 +19,7 @@ namespace MQIManagedClient
                     Log.Logger.Error(ex, $"MQException caught: {ex.ReasonCode} - {ex.Message}. Reconnecting...");
                     return true;
                 })
-                .WaitAndRetry(20, (attempt, ctx) => TimeSpan.FromSeconds(3));
+                .WaitAndRetry(40, (attempt, ctx) => TimeSpan.FromSeconds(3));
             retry.Execute(() => ListenInner(config, ct));
             Log.Logger.Information("Event listening is stopped");
         }
